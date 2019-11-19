@@ -5,9 +5,10 @@
 # --------- Equipe: Laiana Rios, Robson Barbosa, Samuel Dias -------
 # -------------------- Código com Funções Gerais -------------------
 
+# Motivo do fGeral = deixar os códigos do transmissor e receptor mais limpos porque eles usam algumas funções iguais
 
+# Importa o Socket para poder se comunicar com o servidor e obter uma resposta de volta
 import socket
-# Dados do CAN:
 
 # Função para realizar o cálculo do XOR
 def xor(data, crc): 
@@ -16,7 +17,6 @@ def xor(data, crc):
     result = []
 
    # Atravessa todos os bits, se os bits forem iguais, então XOR é 0, caso contrário 1
-
     for i in range(1, len(crc)):
         if data[i] == crc[i]: 
             result.append('0') 
@@ -25,11 +25,10 @@ def xor(data, crc):
    
     return ''.join(result) 
    
-    # Executa a divisão Modulo-2
-
+# A função mod2div faz um XOR entre o divisor e dividendo
+# Realiza a junção dos elementos após passar pela função XOR
 def mod2div(divident, divisor):
     # Número de bits a serem XORed por vez.
-
     pick = len(divisor)
    
     tmp = divident[0 : pick]
@@ -39,21 +38,18 @@ def mod2div(divident, divisor):
         if tmp[0] == '1': 
    
             # Substitui o dividendo pelo resultado do XOR e puxa 1 bit para baixo
-
             tmp = xor(divisor, tmp) + divident[pick] 
    
         else:
+         
             # Se o bit mais a esquerda for '0'
-
             # Se o bit mais à esquerda do dividendo (ou a parte usada em cada etapa) for 0, a etapa não poderá
             # usar o divisor regular; precisamos usar um divisor de todos os 0s.
-
             tmp = xor('0'*pick, tmp) + divident[pick]
    
         pick += 1
 
    # Nos últimos n bits, precisamos executá-lo normalmente, pois o aumento do valor de pick causará o Índice fora dos limites.
-
     if tmp[0] == '1':
         tmp = xor(divisor, tmp) 
     else: 
@@ -62,28 +58,27 @@ def mod2div(divident, divisor):
     checkword = tmp 
     return checkword
 
-    # Função usada no lado do remetente para codificar dados, acrescentando o restante da divisão modular no final dos dados.
-
+# Função usada no lado do remetente para codificar dados, acrescentando o restante da divisão modular no final dos dados.
+# encodeData = coloca os zeros necessários após o dado enviado (número da chave - 1)
+# Manda essa informação para o mod2div (que faz a divisão exclusiva) e retorna para o transmissor
 def encodeData(msg, key):
    
      l_key = len(key)
    
     # Adiciona n-1 de "0" no final da mensagem
-
      appended_data = msg + '0'*(l_key-1)
      remainder = mod2div(appended_data, key)
 
     # Anexar o restante nos dados originais
-
      codeword = msg + remainder
 
      return codeword
 
+# decodeData = coloca os zeros necessários após o dado enviado (número da chave - 1)
 def decodeData(data, key):
      l_key = len(key)
 
      # Anexa n-1 zeros no final dos dados
-
      appended_data = data + '0'*(l_key-1)
      remainder = mod2div(appended_data, key)
    
@@ -109,44 +104,22 @@ def crc(bits, n, divisor):
 
         novo_dividendo = xor(pedaco_novo_dividendo + pedaco_antigo_dividendo, divisor)
 
-        pos_final = pos_inicial + ( n + 1)
+        pos_final = pos_inicial + (n + 1)
 
         if pos_final >= len(dividendo):
             fim = True
 
-def paridades(entrada):
-    par = list(map(int, str(entrada)))
-
-    print("Paridades:",par)
-
-    posicoes_zero = []
-    posicoes_um = []
-
-    for idx in range(len(par)):
-
-        if idx >= 5:
-            s = sum(par[idx - 5:idx])
-
-            if s == 0:
-                if par[idx] == 0:
-                    posicoes_um.append(idx)
-            elif s == 5:
-                if par[idx] == 1:
-                    posicoes_zero.append(idx)
-
-    print("Posições onde deve inserir 1: {}".format(posicoes_um))
-    print("Posições onde deve inserir 0: {}".format(posicoes_zero))
-
-
+# paridadesIN = recebe os dados e os converte em uma lista de ints, printa a lista, determina a posição e o valor do bit que precisa ser inserido
 def paridadesIN(entrada):
+   
     par = list(map(int, str(entrada)))
 
-    print("Paridades:",par)
+    #print("PARIDADES:",par)
 
     posicoes=[]
     elementos=[]
 
-    #calcular onde
+    # Calcula onde o bit precisa ser inserido
     for idx in range(len(par)):
 
         if idx >= 5:
@@ -161,37 +134,37 @@ def paridadesIN(entrada):
                     posicoes.append(idx)
                     elementos.append(0)
 
-    print("Posições onde deve inserir: {}".format(posicoes))
-    print("elemtnso a serem inseridos: {}".format(elementos))
+    #print("POSIÇÕES ONDE DEVE INSERIR: {}".format(posicoes))
+    #print("ELEMENTOS A SEREM INSERIDOS: {}".format(elementos))
 
     saida = par
-
-    #COLOCAR NO LUGAR
-
+    #print(saida)
+    # Coloca o bit extra no lugar
     for x in range(len(par)):
         if x in posicoes:
-            print(par[0:x+1])
-            print([elementos[posicoes.index(x)]])
-            print(par[x:len(par)-1])
-            saida = par[0:x] + [elementos[posicoes.index(x)]] + par[x:len(par)-1]
-            print(saida)
+            #print(par[0:x+1])
+            #print([elementos[posicoes.index(x)]])
+            #print(par[x:len(par)-1])
+            saida = par[0:x] + [elementos[posicoes.index(x)]] + par[x:len(par)]
+            #print(saida)
 
     return "".join([str(elem) for elem in saida])
 
+# paridadesOFF = recebe os dados e os converte em uma lista de ints, printa a lista, determina a posição e o valor do bit que precisa ser retirado
 def paridadesOFF(entrada):
-    print(entrada)
+   
+    #print(entrada)
     par = list(map(int, str(entrada)))
 
-    print("Paridades:",par)
+    #print("PARIDADES:",par)
 
     posicoes=[]
     elementos=[]
 
-    #calcular onde
+   # Calcula onde o bit precisa ser retirado
     for idx in range(len(par)):
 
         if idx >= 5:
-            print("entrou")
             s = sum(par[idx - 4:idx])
 
             if s == 0:
@@ -203,14 +176,19 @@ def paridadesOFF(entrada):
                     posicoes.append(idx)
                     elementos.append(0)
 
-    print("Posições onde deve inserir: {}".format(posicoes))
-    print("elemtnso a serem inseridos: {}".format(elementos))
+    #print("POSIÇÕES ONDE DEVE INSERIR: {}".format(posicoes))
+    #print("ELEMENTOS A SEREM INSERIDOS: {}".format(elementos))
 
     saida = par
 
-    #Tira NO LUGAR
+    # Retira o bit inserido
     for x in posicoes:
-        saida.pop(x+1)
-    print(saida)
+        saida[x+1] = "BIT_DE_SAIDA"
 
-paridadesOFF(paridadesIN("11010000001110"))
+    #print(saida)
+
+    saida.remove("BIT_DE_SAIDA")
+
+    return "".join([str(elem) for elem in saida])
+
+#print(paridadesOFF(paridadesIN("110100000101110")))
